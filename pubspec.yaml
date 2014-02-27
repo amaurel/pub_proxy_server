@@ -1,6 +1,7 @@
 name: pub_proxy_server
-author: Alexandre Maurel (alexandre.maurel@gmail.com)
-version: 0.0.1
+author: Alexandre Maurel <alexandre.maurel@gmail.com>
+version: 0.0.3
+homepage: https://bitbucket.org/amaurel/pub_proxy_server
 description: Private pub and proxy server.
 dependencies:
   http_server: 0.9.1
@@ -8,3 +9,6 @@ dependencies:
   path: 1.0.0
   route: 0.4.6
   route_hierarchical: 0.4.14
+  yaml: 0.9.0
+dev_dependencies:
+  unittest: 0.9.3   
