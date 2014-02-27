@@ -3,6 +3,14 @@ pub_proxy_server
 
 Private pub and proxy server.
 
+Publish private package to your local server.
+Act as proxy for pub.dartlang.org.
+Private and public packages all accessible through pub command line.
+
+pub publish --server http://127.0.0.1:8042
+pub get
+
+
 Installation
 ------------
 
@@ -13,13 +21,24 @@ Add this package to your pubspec.yaml file:
 
 Then, run `pub install` to download and link in the package.
   
-Set PUB_HOSTED_URL environent variable to something like http://127.0.0.1:8042
+Set PUB_HOSTED_URL environent variable to http://127.0.0.1:8042
 
 ```dart
-import 'package:pub_proxy_server/pub_proxy_server.dart' as pub_proxy_server;
+import 'package:logging/logging.dart';
+import 'package:pub_proxy_server/pub_proxy_server.dart';
+
 
 void main() {
-  pub_proxy_server.start();
-  //pub_proxy_server.start(port:8888,packageCacheDirectory:"some directory ...");
+  initLog();
+  start_pub_proxy_server(new PubFederatedRepo.localAndDartLangProxy());
+}
+ 
+initLog(){
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((LogRecord rec) {
+    print('${rec.level.name}:${rec.loggerName}: ${rec.time}: ${rec.message}');
+    if (rec.error != null) print(rec.error);
+    if (rec.stackTrace != null) print(rec.stackTrace);
+  });
 }
 ```

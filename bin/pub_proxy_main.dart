@@ -14,5 +14,4 @@ initLog(){
     if (rec.error != null) print(rec.error);
     if (rec.stackTrace != null) print(rec.stackTrace);
   });
-   
 }
