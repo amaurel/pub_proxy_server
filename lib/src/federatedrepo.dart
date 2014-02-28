@@ -17,6 +17,12 @@ class PubFederatedRepo implements PubRepo {
     });
   }
   
+  Future<Stream> getPackageStream(String package, String version){
+    return this.findRepoForPackage(package).then((repo){
+          return repo.getPackageStream(package, version);
+        });
+  }
+  
   Future<Map> getVersions(String package){
     return this.findRepoForPackage(package).then((repo){
       return repo.getVersions(package);
@@ -39,6 +45,12 @@ class PubFederatedRepo implements PubRepo {
 
   Future<PubRepo> findRepoForPackage(String package, {orElse()}){
     Function fun = orElse != null ? orElse : ()=>throw new PubRepoException("package $package not found");
-    return pps_async.firstWhere(this.repos, (PubRepo repo)=>repo.containsPackage(package), orElse:fun);
+    return pps_async.firstWhere(this.repos, (PubRepo repo){
+      log.fine("findRepoForPackage $package searching in $repo");
+      return repo.containsPackage(package);
+    }, orElse:fun).then((repo){
+      log.fine("findRepoForPackage $package found in $repo");
+      return repo;
+    });
   }
 }

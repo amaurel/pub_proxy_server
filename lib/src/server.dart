@@ -1,10 +1,12 @@
 part of pub_proxy_server;
 
 class PubServer {
-  
+   
   PubRepo repo;
   int port;
   PermissionStore permissionStore;
+  bool isSecure;
+  String address;
   
   final Logger log = new Logger('PubServer');
   final String pub_dartlang_org = "https://pub.dartlang.org" ; 
@@ -17,13 +19,23 @@ class PubServer {
   VirtualDirectory staticFiles = new VirtualDirectory('');
   HttpClient client = new HttpClient(); 
   
-  PubServer(this.repo, this.port, {PermissionStore permissionStore}){
+  PubServer(this.repo, this.port, {bool isSecure: false, String address:'0.0.0.0', PermissionStore permissionStore}){
     this.permissionStore = permissionStore;
+    this.isSecure = isSecure;
+    this.address = address;
+  }
+  
+  Future<HttpServer> bind(){
+    if (isSecure){
+      return HttpServer.bindSecure(address, port);      
+    } else {
+      return HttpServer.bind(address, port);
+    }
   }
   
   start(){
     runZoned(() {
-        HttpServer.bind('0.0.0.0', port).then((server) {
+      bind().then((server) {
           log.fine("Server started listening port $port");
           var router = new Router(server)..defaultStream.listen(servepub);
         });
@@ -37,22 +49,50 @@ class PubServer {
       });
   }
   
+  Future<bool> checkRequestOauthPermission(String token){
+    log.fine("checkRequestOauthPermission token xxx");
+    return this.client.getUrl(new Uri.https("www.googleapis.com", "/oauth2/v1/userinfo", {"access_token":token})).then((request){
+      return request.close().then((HttpClientResponse response){
+        if (response.statusCode != 200) return false;
+        return response.transform(new Utf8Decoder()).transform(new JsonDecoder(null)).single.then((Map m){
+          if (m.containsKey("email")){
+            return this.permissionStore.isValideUserName(m["email"]);
+          } else {
+            return false;
+          }
+        });
+      });
+    });
+  }
+  
   Future<bool> checkRequestPermission(HttpRequest request){
     log.fine("checkRequestPermission");
     return new Future.sync((){
       if (permissionStore == null) return true;
-          if (request.headers["authorization"] == null || request.headers["authorization"].isEmpty) return false;
+          if (request.headers["authorization"] == null || request.headers["authorization"].isEmpty){
+            return false;
+          }
           var auth = request.headers["authorization"].first;
           log.fine("checkRequestPermission auth $auth");
-          var i = auth.indexOf("Basic");
-          auth = auth.substring(i+"Basic".length).trim();
-          auth = new String.fromCharCodes(CryptoUtils.base64StringToBytes(auth));
-          log.fine("checkRequestPermission 2 auth $auth");
-          List list = auth.split(":");
-          if (list.length != 2) return false;
-          var username = list.first;
-          var password = list.last;
-          return this.permissionStore.isValidUser(username, password);
+          var authType = auth.split(" ");
+          if (authType.length != 2) return false;
+          auth = authType.last.trim();
+          authType = authType.first.trim();
+          if (authType == "Basic"){
+            log.fine("checkRequestPermission $authType");
+            auth = new String.fromCharCodes(CryptoUtils.base64StringToBytes(auth));
+            List list = auth.split(":");
+            if (list.length != 2) return false;
+            var username = list.first;
+            var password = list.last;
+            return this.permissionStore.isValidUser(username, password);
+          } else if (authType == "Bearer") {
+            log.fine("checkRequestPermission $authType");
+            return checkRequestOauthPermission(auth);
+          } else {
+            log.warning("checkRequestPermission unknown authentication type $authType");
+            return false;
+          }
     });
   }
   
@@ -74,8 +114,10 @@ class PubServer {
   Future servedownloadpackage(HttpRequest request, String package, String version){
     if (version.endsWith('.tar.gz')) version = version.substring(0, version.length - '.tar.gz'.length);
     log.fine("servedownloadpackage package $package version $version");
-    return repo.getPackageFile(package, version).then((file){
-      return staticFiles.serveFile(file,request);
+    return repo.getPackageStream(package, version).then((stream){
+      return stream.forEach((bytes)=>request.response.add(bytes)).then((_){
+        return request.response.close();
+      });
     });
   }
   

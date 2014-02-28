@@ -11,6 +11,11 @@ class PermissionStore {
     return per.password == password;
   }
   
+  bool isValideUserName(String email){
+    log.fine("isValideUserName $email");
+    return _userPermissions.any((each)=>each.username == email);
+  }
+  
   addPermission(UserPermission perm){
     _userPermissions.add(perm);
   }

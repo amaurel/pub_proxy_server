@@ -73,9 +73,14 @@ class RemoteRepoImpl implements RemoteRepo {
         log.fine("getPackageFile package $package version $version file not found");
         return this._downloadPackage(package, version);
       }
-      
     });
   }
+  
+  Future<Stream> getPackageStream(String package, String version){
+      return this.getPackageFile(package, version).then((file){
+        return file.openRead();
+      });
+    }
   
   Future<bool> containsPackage(String package){
     log.fine("containsPackage package $package");

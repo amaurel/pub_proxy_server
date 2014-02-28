@@ -8,7 +8,7 @@ remoterepo_test(){
       expect(flag, equals(true));
     }).then((_){
       return repo.containsPackage("000000121").then((flag){
-        //expect(flag, equals(false));
+        expect(flag, equals(false));
       });
     });
   });
@@ -28,24 +28,11 @@ remoterepo_test(){
     });
   });
   
-  test('test 4 : getPackageFile' , (){
+  test('test 4 : getPackageStream' , (){
     PubRepo repo = new PubFederatedRepo.localAndDartLangProxy();
-    return repo.getPackageFile("uuid", "0.2.2").then((File file){
-      expect(file.existsSync(), equals(true));
-      expect(file.path.endsWith("0.2.2.tar.gz"), equals(true));
-    });
-  });
-  
-  test('test 5 : getPackageFile' , (){
-    PubRepo repo = new PubFederatedRepo.localAndDartLangProxy();
-    var futures = [];
-    futures.add(repo.getPackageFile("dbcrypt", "0.2.1"));
-    futures.add(repo.getPackageFile("drandom", "0.0.3"));
-    return Future.wait(futures).then((files){
-      expect(files[0].existsSync(), equals(true));
-      expect(files[0].path.endsWith("0.2.1.tar.gz"), equals(true));
-      expect(files[1].existsSync(), equals(true));
-      expect(files[1].path.endsWith("0.0.3.tar.gz"), equals(true));
+    return repo.getPackageStream("uuid", "0.2.2").then((Stream stream){
+      expect(stream != null, equals(true));
+      return stream.drain();
     });
   });
 }

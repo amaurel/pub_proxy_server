@@ -1,7 +1,7 @@
 part of pub_proxy_server;
 
 abstract class PubRepo {
-  Future<File> getPackageFile(String package, String version);
+  Future<Stream> getPackageStream(String package, String version);
   Future<Map> getVersions(String package);
   Future<Map> getPubspec(String package, String version);
   Future publishPackage(Stream stream, {String checksum});
@@ -24,6 +24,11 @@ class PubRepoImpl implements PubRepo {
   }
   
   Future<File> getPackageFile(String package, String version)=>store.getPackageFile(package, version);
+  Future<Stream> getPackageStream(String package, String version){
+        return this.getPackageFile(package, version).then((file){
+          return file.openRead();
+        });
+      }
   
   Future<Map> getVersions(String package){
     log.fine("getVersions package $package");
@@ -31,7 +36,7 @@ class PubRepoImpl implements PubRepo {
       var versions = [];
       var dir = store.packageDirectory(package);
       if (!dir.existsSync()) return {"versions":versions};
-      store.packageDirectory(package).listSync(recursive: false).forEach((fse){
+      store.packageDirectory(package).listSync(recursive: true).forEach((fse){
         if (fse is File && fse.path.endsWith(".yaml")) versions.add({"version":yaml.loadYaml(fse.readAsStringSync())["version"]});
       });
       return {"versions":versions};
