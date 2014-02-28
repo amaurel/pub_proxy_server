@@ -4,10 +4,13 @@ pub_proxy_server
 Private pub and proxy server.
 
 Publish private package to your local server.
+
 Act as proxy for pub.dartlang.org.
+
 Private and public packages all accessible through pub command line.
 
 pub publish --server http://127.0.0.1:8042
+
 pub get
 
 
