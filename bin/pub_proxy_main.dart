@@ -4,7 +4,10 @@ import 'package:pub_proxy_server/pub_proxy_server.dart';
 
 void main() {
   initLog();
-  start_pub_proxy_server(new PubFederatedRepo.localAndDartLangProxy());
+  PermissionStore store = new PermissionStore();
+  store.addPermission(new UserPermission("alexandre", "alexandre"));
+  store.addPermission(new UserPermission("heroku", "heroku"));
+  start_pub_proxy_server(new PubFederatedRepo.localAndDartLangProxy(), permissionStore:store);
 }
  
 initLog(){
