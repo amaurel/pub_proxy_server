@@ -93,9 +93,22 @@ class RemoteRepoImpl implements RemoteRepo {
     return client.getUrl(uri).then((request)=>request.close()).then((response){
       //response.statusCode != 200
       log.fine("downloadPackage $package version $version status ${response.statusCode} response.headers : ${response.headers.toString()}");
-      var checksum;
+      var checksum = extractMD5CheckSum(response);
       return store.savePackage(response, checksum: checksum);
     });
+  }
+  
+  String extractMD5CheckSum(HttpClientResponse response){
+    String googhash;
+    if (response.headers["x-goog-hash"] != null){
+      googhash = response.headers["x-goog-hash"].firstWhere((each)=>each.startsWith("md5"), orElse: ()=> null);
+    }
+    if (googhash == null) return null;
+    log.fine("extractMD5CheckSum found x-goog-hash: $googhash");
+    var i = googhash.indexOf("md5="); 
+    googhash = googhash.substring(i+"md5=".length);
+    log.fine("extractMD5CheckSum md5=$googhash");
+    return googhash;
   }
   
   Future<Map> getVersions(String package){

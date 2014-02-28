@@ -21,38 +21,32 @@ class Store {
   Directory packageDirectory(package) =>this.settings.packageDirectory(package);
   File packageYamlFile(package,version)=>this.settings.packageYamlFile(package, version);
   
+ 
   Future savePackage(Stream stream, {String checksum}){
     log.fine("savePackage");
     var tmpdirectory = new Directory(settings.tmpDir).createTempSync("tmp");
     var tmpfile = new File(path.join(tmpdirectory.path,'package.tar.gz'));
     var sink = tmpfile.openWrite();
     //return stream.pipe(s).then((_){ not working !!!
-    return stream.forEach((bytes)=>sink.add(bytes)).then((_)=>sink.close()).then((_){
-      return _checkSum(tmpfile, checksum).then((check){
-        if (!check) throw new PubRepoException("checksum failed for file : $tmpfile");
-        return run("tar" , ["-xzvf" , "package.tar.gz"], workingDirectory:tmpdirectory.path).then((_){
-          var pubspec = new File(path.join(tmpdirectory.path,'pubspec.yaml'));  
-          var doc = yaml.loadYaml(pubspec.readAsStringSync());
-          var package = doc["name"]; var version = doc["version"];
-          File file = settings.packageFile(package,version);
-          if (file.existsSync()) throw new PubRepoException("cannot save package $package, file $file is in the way.");
-          var dir = packageDirectory(package);
-          ensureDirectoryExist(dir.path);
-          File pubspecfile = settings.packageYamlFile(package,version);
-          File tmppubspeclfile = new File(path.join(pubspecfile.parent.path,'tmp.yaml'));
-          return pubspec.copy(tmppubspeclfile.path).then((_){
-            tmppubspeclfile.renameSync(pubspecfile.path);
-            File dummyfile = new File(path.join(file.parent.path,'package.tar.gz'));
-            return tmpfile.copy(dummyfile.path).then((_){
-              dummyfile.renameSync(file.path);
-              return tmpdirectory.delete(recursive: true).then((_){
-                return file;
-              });
-            });
-          });
-        }); 
-      });
-    });
+    return stream.forEach((bytes)=>sink.add(bytes))
+      .then((_)=>sink.close())
+      .then((_)=>pps_io.checkSum(tmpfile, checksum))
+      .then((check)=> check == true ? true : throw new PubRepoException("checksum failed for file : $tmpfile"))
+      .then((_)=>pps_io.run("tar" , ["-xzvf" , "package.tar.gz"], workingDirectory:tmpdirectory.path))
+      .then((_){
+        var pubspec = new File(path.join(tmpdirectory.path,'pubspec.yaml'));  
+        var doc = yaml.loadYaml(pubspec.readAsStringSync());
+        var package = doc["name"]; var version = doc["version"];
+        File file = settings.packageFile(package,version);
+        if (file.existsSync()) throw new PubRepoException("cannot save package $package, file $file is in the way.");
+        pps_io.ensureDirectoryExist(packageDirectory(package));
+        var dir = packageDirectory(package).createTempSync("tmp_$version");
+        tmpfile = tmpfile.renameSync(path.join(tmpfile.parent.path, path.basename(file.path)));
+        pps_io.moveFile(pubspec, dir.path);
+        pps_io.moveFile(tmpfile, dir.path);
+        dir.renameSync(settings.packageVersionDirectory(package,version).path);
+        return file;})
+      .then((file)=>tmpdirectory.delete(recursive: true).then((_)=>file));
   }
 }
  
@@ -75,13 +69,14 @@ class StoreSettings {
   ensureDirectory(){
     repoDir = repoDir == null ? path.join(this._homeDir, this.defaultRepoDir): repoDir;
     tmpDir = tmpDir == null ? path.join(this._homeDir,'tmp') : tmpDir;
-    ensureDirectoryExist(repoDir);
-    ensureDirectoryExist(tmpDir);
+    pps_io.ensureDirectoryExist(repoDir);
+    pps_io.ensureDirectoryExist(tmpDir);
     log.fine('ensureDirectory repoDir $repoDir');
     log.fine('ensureDirectory tmpDir $tmpDir');
   }
   
   Directory packageDirectory(package)=>new Directory(path.join(repoDir,package));
-  File packageYamlFile(package,version)=>new File(path.join(packageDirectory(package).path, "$version.yaml"));
-  File packageFile(package,version)=>new File(path.join(packageDirectory(package).path, "${version}.tar.gz"));
+  Directory packageVersionDirectory(package,version)=>new Directory(path.join(packageDirectory(package).path,version));
+  File packageYamlFile(package,version)=>new File(path.join(packageVersionDirectory(package,version).path, "pubspec.yaml"));
+  File packageFile(package,version)=>new File(path.join(packageVersionDirectory(package,version).path, "${package}.tar.gz"));
 }

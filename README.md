@@ -42,3 +42,17 @@ initLog(){
   });
 }
 ```
+
+Roadmap
+------------
+
+md5 checksum
+
+Add a transactional store, SQLite, Mongo .. ?
+
+Https support
+
+Web admin pages
+
+Autentication
+

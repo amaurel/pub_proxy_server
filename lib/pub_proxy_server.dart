@@ -13,6 +13,7 @@ import 'package:mime/mime.dart';
 import 'package:yaml/yaml.dart' as yaml;
 
 import 'package:pub_proxy_server/src/async.dart' as pps_async;
+import 'package:pub_proxy_server/src/io.dart' as pps_io;
  
  
 part 'src/cache.dart';
@@ -20,7 +21,6 @@ part 'src/store.dart';
 part 'src/repo.dart';
 part 'src/remoterepo.dart';
 part 'src/federatedrepo.dart';
-part 'src/io.dart';
 
 void start_pub_proxy_server(PubRepo repo, {int port}) {
   
