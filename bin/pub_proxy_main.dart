@@ -6,7 +6,7 @@ void main() {
   initLog();
   PermissionStore store = new PermissionStore();
   store.addPermission(new UserPermission("alexandre", "alexandre"));
-  store.addPermission(new UserPermission("alexandre.maurel@gmail.com", "")); //necessary to publish
+  store.addPermission(new UserPermission("alexandre", "")); //necessary to publish
   store.addPermission(new UserPermission("heroku", "heroku"));
   start_pub_proxy_server(new PubFederatedRepo.localAndDartLangProxy(), permissionStore:store);
 }
